@@ -12,9 +12,9 @@ on:
         default: "all-64bit"
         type: choice
         options:
-        - 32bit
         - 64bit
         - 64bit-v3
+        - aarch64
         - all-64bit
         - all
       compiler:
@@ -42,7 +42,7 @@ on:
       release:
         description: "Publish a release"
         required: false
-        default: false
+        default: true
         type: boolean
       run_name:
         description: 'The name displayed in the list of workflow runs'
@@ -62,20 +62,20 @@ jobs:
             let matrix = {};
             let build_target = "${{ inputs.build_target }}"
             switch ( build_target ) {
-              case "32bit":
-                matrix.bit = ["32"];
-                break;
               case "64bit":
                 matrix.bit = ["64"];
                 break;
               case "64bit-v3":
                 matrix.bit = ["64-v3"];
                 break;
+              case "aarch64":
+                matrix.bit = ["aarch64"];
+                break;
               case "all-64bit":
-                matrix.bit = ["64","64-v3"];
+                matrix.bit = ["aarch64","64-v3"];
                 break;
               case "all":
-                matrix.bit = ["32","64","64-v3"];
+                matrix.bit = ["aarch64","64","64-v3"];
                 break;
               default:
                 matrix.bit = ["64","64-v3"];
@@ -95,13 +95,12 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     container:
-      image: archlinux/archlinux:base-devel
+      image: cachyos/cachyos-v3:latest
     steps:
       - name: Install Dependencies
         run: |
-          sudo echo -e "[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
           sudo pacman -Syu --noconfirm
-          sudo pacman -S --noconfirm --needed git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz gcc-multilib clang lld libc++ libc++abi python-pip curl lib32-glib2 wget python-cairo mimalloc
+          sudo pacman -S --noconfirm --needed base-devel git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz clang lld libc++ libc++abi python-pip curl wget python-cairo mimalloc ccache
           mkdir -p /home/opt/7zip
           wget -qO - https://www.7-zip.org/a/7z2301-linux-x64.tar.xz | tar -xJf - -C /home/opt/7zip 7zzs
           sudo ln -s /home/opt/7zip/7zzs /usr/bin/7z
@@ -114,7 +113,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v4
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Andarwinux/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
       - name: Build LLVM
         shell: bash
@@ -137,7 +136,7 @@ jobs:
               git am --3way "$patch" || git am --abort
             done
           fi
-          clang_option="-DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32"
+          clang_option="-DCLANG_PACKAGES_LTO=ON -DLLVM_ENABLE_LTO=Thin -DENABLE_CCACHE=ON -DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32"
           cmake -DTARGET_ARCH=$arch-w64-mingw32 $gcc_arch -DCOMPILER_TOOLCHAIN=$compiler $clang_option -DSINGLE_SOURCE_LOCATION=$srcdir -DRUSTUP_LOCATION=$buildroot/install_rustup -G Ninja -H$gitdir -B$buildroot/build$bit
           set +x
           stdbuf -oL bash -c "ninja -C $buildroot/build$bit llvm" | 
@@ -172,7 +171,7 @@ jobs:
     if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     runs-on: ubuntu-latest
     container:
-      image: archlinux/archlinux:base-devel
+      image: cachyos/cachyos-v3:latest
     continue-on-error: true
     strategy:
       matrix: ${{ fromJson(needs.params.outputs.matrix) }}
@@ -180,9 +179,8 @@ jobs:
     steps:
       - name: Install Dependencies
         run: |
-          sudo echo -e "[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
           sudo pacman -Syu --noconfirm
-          sudo pacman -S --noconfirm --needed git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz gcc-multilib clang lld libc++ libc++abi python-pip curl lib32-glib2 wget python-cairo mimalloc
+          sudo pacman -S --noconfirm --needed base-devel git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz clang lld libc++ libc++abi python-pip curl wget python-cairo mimalloc ccache
           mkdir -p /home/opt/7zip
           wget -qO - https://www.7-zip.org/a/7z2301-linux-x64.tar.xz | tar -xJf - -C /home/opt/7zip 7zzs
           sudo ln -s /home/opt/7zip/7zzs /usr/bin/7z
@@ -195,7 +193,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v4
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Andarwinux/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
 
       - name: Restore llvm cache
@@ -224,10 +222,14 @@ jobs:
               arch="i686"
           elif [ $bit == "64" ]; then
               arch="x86_64"
+              gcc_arch=-DGCC_ARCH=tigerlake
           elif [ $bit == "64-v3" ]; then
               arch="x86_64"
               gcc_arch=-DGCC_ARCH=x86-64-v3
               x86_64_level=-v3
+          elif [ $bit == "aarch64" ]; then
+              arch="aarch64"
+              gcc_arch=-DGCC_ARCH=armv8.2-a
           fi
           set -x
           if [[ "$(ls -A ../patch/*.patch)" ]]; then
@@ -238,7 +240,7 @@ jobs:
           if [ "$compiler" == "gcc" ]; then
             command="ninja -C $buildroot/build$bit gcc"
           elif [ "$compiler" == "clang" ]; then
-            clang_option="-DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32"
+            clang_option="-DCLANG_PACKAGES_LTO=ON -DLLVM_ENABLE_LTO=Thin -DENABLE_CCACHE=ON -DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32"
             command="ninja -C $buildroot/build$bit rebuild_cache && cmake --build $buildroot/build$bit --target llvm-download && ninja -C $buildroot/build$bit llvm-clang && ninja -C $buildroot/build$bit rustup"
           fi
           cmake --fresh -DTARGET_ARCH=$arch-w64-mingw32 $gcc_arch -DCOMPILER_TOOLCHAIN=$compiler $clang_option -DSINGLE_SOURCE_LOCATION=$srcdir -DRUSTUP_LOCATION=$buildroot/install_rustup -G Ninja -H$gitdir -B$buildroot/build$bit
@@ -298,7 +300,7 @@ jobs:
           script: |
             let build_target=new Set();
             const release = ${{ inputs.release }};
-            const targets = {"build64-v3":"64bit-v3","build64":"64bit","build32":"32bit"}
+            const targets = {"build64-v3":"64bit-v3","build64":"64bit","build32":"32bit","buildaarch64":"aarch64"}
             const repo="${{github.repository}}".split('/')[1];
             const cache_suffix="${{ needs.params.outputs.cache_suffix }}";
             const cache = await github.rest.actions.getActionsCacheList({

@@ -15,15 +15,19 @@ main() {
         package "32" 
     elif [ "$target" == "64" ]; then
         package "64"
+    elif [ "$target" == "aarch64" ]; then
+        package "aarch64"
     elif [ "$target" == "64-v3" ]; then
         package "64-v3"
     elif [ "$target" == "all-64" ]; then
         package "64"
         package "64-v3"
+        package "aarch64"
     else [ "$target" == "all" ];
         package "32"
         package "64"
         package "64-v3"
+        package "aarch64"
     fi
     rm -rf ./release/mpv-packaging-master
 }
@@ -38,6 +42,9 @@ package() {
         local arch="x86_64"
         local gcc_arch="-DGCC_ARCH=x86-64-v3"
         local x86_64_level="-v3"
+    elif [ $bit == "aarch64" ]; then
+        local arch="aarch64"
+        local gcc_arch="-DGCC_ARCH=armv8.2-a"
     fi
 
     build $bit $arch $gcc_arch
@@ -71,8 +78,15 @@ build() {
     fi
     ninja -C $buildroot/build$bit update
     ninja -C $buildroot/build$bit mpv-fullclean
-    
-    ninja -C $buildroot/build$bit mpv
+    ninja -C $buildroot/build$bit download
+
+    ninja -C $buildroot/build$bit mpv mesa libva-utils mpv-debug-plugin mpv-menu-plugin libmediainfo
+
+    if [ "$compiler" == "gcc" ]; then
+        $buildroot/build$bit/install/bin/$arch-w64-mingw32-strip -s $buildroot/build$bit/install/$arch-w64-mingw32/bin/*.{exe,dll}
+    elif [ "$compiler" == "clang" ]; then
+        $clang_root/bin/$arch-w64-mingw32-strip -s $buildroot/build$bit/install/$arch-w64-mingw32/bin/*.{exe,dll}
+    fi
 
     if [ -n "$(find $buildroot/build$bit -maxdepth 1 -type d -name "mpv*$arch*" -print -quit)" ] ; then
         echo "Successfully compiled $bit-bit. Continue"
