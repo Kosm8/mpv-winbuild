@@ -8,7 +8,7 @@ on:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
         - 32bit
@@ -24,7 +24,7 @@ on:
       release:
         description: "Publish a release"
         required: false
-        default: 'false'
+        default: 'true'
         type: boolean
       command:
         description: 'input command you want to run before build'
