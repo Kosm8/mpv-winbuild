@@ -9,7 +9,7 @@ on:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
         - 32bit
@@ -25,7 +25,7 @@ on:
       release:
         description: "Publish a release"
         required: false
-        default: false
+        default: true
         type: boolean
       command:
         description: 'input command you want to run before build'
@@ -124,7 +124,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v3
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
       - name: Get Params
         run: |
@@ -405,7 +405,7 @@ jobs:
         with:
           artifacts: "artifacts/*/mpv*.7z,artifacts/*/ffmpeg*.7z"
           commit: version
-          name: "MPV ${{ env.long_time }}"
+          name: "MPV (light) ${{ env.long_time }}"
           body: "**MPV Git commit**: https://github.com/mpv-player/mpv/commit/${{ fromJson(needs.params.outputs.params).sha }}\n**Build Time**: ${{ env.long_time }}\n**Build Details**: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}\n**Downloads**: ![downloads](https://badgen.net/github/assets-dl/${{github.repository}}/${{ env.short_time }}?cache=300)"
           tag: "${{ env.short_time }}"
           allowUpdates: true
