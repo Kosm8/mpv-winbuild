@@ -9,7 +9,7 @@ on:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
         - 32bit
@@ -95,7 +95,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v3
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
       - name: Get Params
         id: params

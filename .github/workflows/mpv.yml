@@ -1,4 +1,4 @@
-name: MPV
+name: MPV Light
 run-name: ${{ inputs.run_name }}
 
 on: 
@@ -9,7 +9,7 @@ on:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
         - 32bit
@@ -30,13 +30,13 @@ on:
       release:
         description: "Publish a release"
         required: false
-        default: false
+        default: true
         type: boolean
       command:
         description: 'input command you want to run before build'
         required: false
       prs:
-        description: "Input the pr numbers of mpv,split items by comma(',')"
+        description: "Input the pr numbers of mpv, split items by comma(',')"
         required: false
       run_name:
         description: 'The name displayed in the list of workflow runs'
@@ -171,7 +171,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v3
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
       - name: Get Params
         run: |
@@ -575,7 +575,7 @@ jobs:
         with:
           artifacts: "artifacts/*/mpv*.7z,artifacts/*/ffmpeg*.7z"
           commit: version
-          name: "${{ env.long_time }}"
+          name: "MPV Light ${{ env.long_time }}"
           body: "${{ steps.note.outputs.note }}"
           tag: "${{ env.tag_name }}"
           allowUpdates: true
