@@ -2,21 +2,15 @@ name: toolchain
 run-name: "${{ inputs.run_name != '' && format('{0} ({1})', inputs.run_name, inputs.compiler) || format('{0} ({1})', github.workflow, inputs.compiler) }}"
 
 on: 
-  # schedule:
-  #   - cron:  '0 12 * * *'
   workflow_dispatch:
     inputs:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
-        - 32bit
         - 64bit
-        - 64bit-v3
-        - all-64bit
-        - all
       compiler:
         required: false
         default: "gcc"
@@ -37,7 +31,7 @@ on:
       trigger_build:
         description: "Trigger mpv build action after success build"
         required: false
-        default: true
+        default: false
         type: boolean
       release:
         description: "Publish a release"
@@ -62,23 +56,11 @@ jobs:
             let matrix = {};
             let build_target = "${{ inputs.build_target }}"
             switch ( build_target ) {
-              case "32bit":
-                matrix.bit = ["32"];
-                break;
               case "64bit":
                 matrix.bit = ["64"];
                 break;
-              case "64bit-v3":
-                matrix.bit = ["64-v3"];
-                break;
-              case "all-64bit":
-                matrix.bit = ["64","64-v3"];
-                break;
-              case "all":
-                matrix.bit = ["32","64","64-v3"];
-                break;
               default:
-                matrix.bit = ["64","64-v3"];
+                matrix.bit = ["64"];
                 break;
             }
             core.setOutput("matrix",JSON.stringify(matrix));
@@ -114,13 +96,13 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v4
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
       - name: Build LLVM
         shell: bash
         run: |
           cd mpv-winbuild-cmake
-          bit="64-v3"
+          bit="64"
           compiler="${{ inputs.compiler }}"
           gitdir=$(pwd)
           clang_root=$(pwd)/clang_root
@@ -128,8 +110,8 @@ jobs:
           srcdir=$(pwd)/src_packages
 
           arch="x86_64"
-          gcc_arch=-DGCC_ARCH=x86-64-v3
-          x86_64_level=-v3
+          gcc_arch=-DGCC_ARCH=core2
+          x86_64_level=-v1
 
           set -x
           if [[ "$(ls -A ../patch/*.patch)" ]]; then
@@ -195,7 +177,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v4
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
 
       - name: Restore llvm cache
@@ -220,14 +202,9 @@ jobs:
           buildroot=$(pwd)
           srcdir=$(pwd)/src_packages
 
-          if [ $bit == "32" ]; then
-              arch="i686"
-          elif [ $bit == "64" ]; then
+          if [ $bit == "64" ]; then
               arch="x86_64"
-          elif [ $bit == "64-v3" ]; then
-              arch="x86_64"
-              gcc_arch=-DGCC_ARCH=x86-64-v3
-              x86_64_level=-v3
+              gcc_arch=-DGCC_ARCH=core2
           fi
           set -x
           if [[ "$(ls -A ../patch/*.patch)" ]]; then
@@ -298,7 +275,7 @@ jobs:
           script: |
             let build_target=new Set();
             const release = ${{ inputs.release }};
-            const targets = {"build64-v3":"64bit-v3","build64":"64bit","build32":"32bit"}
+            const targets = {"build64":"64bit"}
             const repo="${{github.repository}}".split('/')[1];
             const cache_suffix="${{ needs.params.outputs.cache_suffix }}";
             const cache = await github.rest.actions.getActionsCacheList({
@@ -321,17 +298,6 @@ jobs:
                 }
               }
             }
-            if(build_target.size>0){
-              if(build_target.has("64bit-v3") && build_target.has("64bit")) {
-                build_target.delete("64bit-v3");
-                build_target.delete("64bit");
-                build_target.add("all-64bit");
-              }
-              if(build_target.has("all-64bit") && build_target.has("32bit")) {
-                build_target.delete("all-64bit");
-                build_target.delete("32bit");
-                build_target.add("all");
-              }
               for (const t of build_target){
                 await github.rest.actions.createWorkflowDispatch({
                   owner: '${{github.repository_owner}}',
