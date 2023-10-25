@@ -55,7 +55,7 @@ build() {
     ninja -C $buildroot/build$bit mpv-fullclean
 
     if [ "$compiler" == "clang" ]; then
-        clang_option+=("-DCLANG_FLAGS=-Ofast -DWIN32_WINNT=0x0A00 -pipe -fdata-sections -ffunction-sections -faddrsig -fvisibility=hidden" "-DLLD_FLAGS=-Ofast --gc-sections --icf=safe")
+        clang_option+=("-DCLANG_FLAGS=-Ofast -DWIN32_WINNT=0x0A00 -pipe -fdata-sections -ffunction-sections -faddrsig -fvisibility=hidden" "-DLLD_FLAGS=-Ofast --gc-sections --icf=all")
         cmake -DTARGET_ARCH=$arch-w64-mingw32 $gcc_arch -DCOMPILER_TOOLCHAIN=$compiler "${clang_option[@]}" -DALWAYS_REMOVE_BUILDFILES=ON -DSINGLE_SOURCE_LOCATION=$srcdir -DRUSTUP_LOCATION=$buildroot/install_rustup -G Ninja -H$gitdir -B$buildroot/build$bit
     fi
     ninja -C $buildroot/build$bit mpv
