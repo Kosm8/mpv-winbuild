@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           cd mpv-winbuild-cmake
-          bit="64"
+          bit="64-v3"
           compiler="${{ inputs.compiler }}"
           gitdir=$(pwd)
           clang_root=$(pwd)/clang_root
@@ -110,8 +110,8 @@ jobs:
           srcdir=$(pwd)/src_packages
 
           arch="x86_64"
-          gcc_arch=-DGCC_ARCH=core2
-          x86_64_level=-v1
+          gcc_arch=-DGCC_ARCH=x86-64-v3
+          x86_64_level=-v3
 
           set -x
           if [[ "$(ls -A ../patch/*.patch)" ]]; then
