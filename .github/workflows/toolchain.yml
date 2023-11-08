@@ -204,7 +204,6 @@ jobs:
 
           if [ $bit == "64" ]; then
               arch="x86_64"
-              gcc_arch=-DGCC_ARCH=core2
           fi
           set -x
           if [[ "$(ls -A ../patch/*.patch)" ]]; then
