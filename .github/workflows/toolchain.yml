@@ -109,7 +109,8 @@ jobs:
           buildroot=$(pwd)
           srcdir=$(pwd)/src_packages
 
-          #arch="x86_64"
+          arch="x86_64"
+          gcc_arch=-DGCC_ARCH=native
 
           set -x
           if [[ "$(ls -A ../patch/*.patch)" ]]; then
