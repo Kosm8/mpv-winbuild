@@ -10,33 +10,17 @@ main() {
     compiler=$2
 
     prepare
-    if [ "$target" == "32" ]; then
-        package "32" 
-    elif [ "$target" == "64" ]; then
+    if [ "$target" == "64" ]; then
         package "64"
-    elif [ "$target" == "64-v3" ]; then
-        package "64-v3"
-    elif [ "$target" == "all-64" ]; then
-        package "64"
-        package "64-v3"
-    else [ "$target" == "all" ];
-        package "32"
-        package "64"
-        package "64-v3"
     fi
     rm -rf ./release/mpv-packaging-master
 }
 
 package() {
     local bit=$1
-    if [ $bit == "32" ]; then
-        local arch="i686"
-    elif [ $bit == "64" ]; then
+    if [ $bit == "64" ]; then
         local arch="x86_64"
-    elif [ $bit == "64-v3" ]; then
-        local arch="x86_64"
-        local gcc_arch="-DGCC_ARCH=x86-64-v3"
-        local x86_64_level="-v3"
+        local gcc_arch="-DGCC_ARCH=core2"
     fi
 
     build $bit $arch $gcc_arch
@@ -51,11 +35,10 @@ build() {
     local gcc_arch=$3
     
     if [ "$compiler" == "clang" ]; then
-        clang_option=(-DLLVM_ENABLE_LTO=Thin -DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32)
+        clang_option=(-DLLVM_ENABLE_LTO=OFF -DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32)
     fi
     cmake -DTARGET_ARCH=$arch-w64-mingw32 $gcc_arch -DCOMPILER_TOOLCHAIN=$compiler "${clang_option[@]}" -DALWAYS_REMOVE_BUILDFILES=ON -DSINGLE_SOURCE_LOCATION=$srcdir -DRUSTUP_LOCATION=$buildroot/install_rustup -G Ninja -H$gitdir -B$buildroot/build$bit
 
-    ninja -C $buildroot/build$bit {libzvbi,libopenmpt}-removeprefix || rm -rf $srcdir/{libzvbi,libopenmpt} || true
     ninja -C $buildroot/build$bit download || true
 
     if [ "$compiler" == "gcc" ] && [ ! "$(ls -A $buildroot/build$bit/install/bin)" ]; then
@@ -70,9 +53,9 @@ build() {
     fi
     ninja -C $buildroot/build$bit update
     ninja -C $buildroot/build$bit mpv-fullclean
-    
+
     if [ "$compiler" == "clang" ]; then
-        clang_option+=('-DCLANG_FLAGS=-fdata-sections -ffunction-sections' '-DLLD_FLAGS=--gc-sections -Xlink=-opt:safeicf')
+        clang_option+=("")
         cmake -DTARGET_ARCH=$arch-w64-mingw32 $gcc_arch -DCOMPILER_TOOLCHAIN=$compiler "${clang_option[@]}" -DALWAYS_REMOVE_BUILDFILES=ON -DSINGLE_SOURCE_LOCATION=$srcdir -DRUSTUP_LOCATION=$buildroot/install_rustup -G Ninja -H$gitdir -B$buildroot/build$bit
     fi
     ninja -C $buildroot/build$bit mpv

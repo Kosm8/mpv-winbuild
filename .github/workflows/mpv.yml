@@ -1,4 +1,4 @@
-name: MPV
+name: MPV Light
 run-name: "${{ inputs.run_name != '' && format('{0} ({1})', inputs.run_name, inputs.compiler) || inputs.prs != '' && format('{0}[{2}] ({1})', github.workflow, inputs.compiler, inputs.prs) || format('{0} ({1})', github.workflow, inputs.compiler) }}"
 
 on: 
@@ -7,14 +7,10 @@ on:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
-        - 32bit
         - 64bit
-        - 64bit-v3
-        - all-64bit
-        - all
       compiler:
         required: false
         default: "clang"
@@ -35,13 +31,13 @@ on:
       release:
         description: "Publish a release"
         required: false
-        default: false
+        default: true
         type: boolean
       command:
         description: 'input command you want to run before build'
         required: false
       prs:
-        description: "Input the pr numbers of mpv,split items by comma(',')"
+        description: "Input the pr numbers of mpv, split items by comma (',')"
         required: false
       run_name:
         description: 'The name displayed in the list of workflow runs'
@@ -69,23 +65,11 @@ jobs:
             let matrix = {};
             let build_target = "${{ inputs.build_target }}"
             switch ( build_target ) {
-              case "32bit":
-                matrix.bit = ["32"];
-                break;
               case "64bit":
                 matrix.bit = ["64"];
                 break;
-              case "64bit-v3":
-                matrix.bit = ["64-v3"];
-                break;
-              case "all-64bit":
-                matrix.bit = ["64","64-v3"];
-                break;
-              case "all":
-                matrix.bit = ["32","64","64-v3"];
-                break;
               default:
-                matrix.bit = ["64","64-v3"];
+                matrix.bit = ["64"];
                 break;
             }
             core.setOutput("matrix",JSON.stringify(matrix));
@@ -153,7 +137,7 @@ jobs:
     needs: params
     runs-on: ubuntu-latest
     container:
-      image: archlinux/archlinux:base-devel
+      image: cachyos/cachyos-v3:latest
     continue-on-error: true
     strategy:
       matrix: ${{ fromJson(needs.params.outputs.matrix) }}
@@ -163,7 +147,7 @@ jobs:
         run: |
           sudo echo -e "[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
           sudo pacman -Syu --noconfirm
-          sudo pacman -S --noconfirm --needed git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz gcc-multilib clang lld libc++ libc++abi python-pip curl lib32-glib2 wget python-cairo
+          sudo pacman -S --noconfirm --needed base-devel git gyp ninja cmake ragel yasm nasm asciidoc enca gperf unzip xz gcc-multilib clang lld libc++ libc++abi python-pip curl lib32-glib2 wget python-cairo
           mkdir -p /home/opt/7zip
           wget -qO - https://www.7-zip.org/a/7z2301-linux-x64.tar.xz | tar -xJf - -C /home/opt/7zip 7zzs
           sudo ln -s /home/opt/7zip/7zzs /usr/bin/7z
@@ -177,7 +161,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v4
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
       - name: Get Params
         run: |
@@ -333,14 +317,9 @@ jobs:
           buildroot=$(pwd)
           srcdir=$(pwd)/src_packages
           builddir=$buildroot/build$bit
-          if [ $bit == "32" ]; then
-              arch="i686"
-          elif [ $bit == "64" ]; then
+          if [ $bit == "64" ]; then
               arch="x86_64"
-          elif [ $bit == "64-v3" ]; then
-              arch="x86_64"
-              gcc_arch=-DGCC_ARCH=x86-64-v3
-              x86_64_level=-v3
+              gcc_arch=-DGCC_ARCH=core2
           fi
           retry-tool() {
             local RETRY_COUNTER=0
@@ -388,14 +367,8 @@ jobs:
             const types = ["mpv-debug", "mpv-dev", "mpv"];
             let arch="";
             switch ( "${{ matrix.bit }}" ) {
-              case "32":
-                arch = "i686";
-                break;
               case "64":
                 arch = "x86_64";
-                break;
-              case "64-v3":
-                arch = "x86_64-v3";
                 break;
             }
             for (let type of types) {
@@ -603,7 +576,7 @@ jobs:
           fi
           git checkout main
 
-      - name: "Generate release note & sha256"
+      - name: "Generate release note"
         id: note
         uses: actions/github-script@v7
         with:
@@ -620,28 +593,12 @@ jobs:
             note+="**Downloads**: ![downloads](https://badgen.net/github/assets-dl/${{github.repository}}/${{ env.tag_name }}?cache=300)";
             core.setOutput("note",note);
 
-            const os = require('os'); 
-            const { basename } = require('path');
-            const { createHash } = require('crypto');
-            const { readFileSync,writeFileSync } = require('fs');
-            const globber = await glob.create([`artifacts/*/mpv*.7z`,`artifacts/*/ffmpeg*.7z`].join('\n'));
-            const files = await globber.glob();
-            if ( files.length > 0 ) {
-              let sha256="";
-              for (let file of files) {
-                const buff = readFileSync(file);
-                const hash = createHash("sha256").update(buff).digest("hex");
-                sha256+=`${hash} ${basename(file)}${os.EOL}`;
-              }
-              writeFileSync('sha256.txt', sha256.trim(), { flag: 'w+' });
-            }
-
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "artifacts/*/mpv*.7z,artifacts/*/ffmpeg*.7z,sha256.txt"
+          artifacts: "artifacts/*/mpv*.7z,artifacts/*/ffmpeg*.7z"
           commit: version
-          name: "${{ env.long_time }}"
+          name: "MPV Light ${{ env.long_time }}"
           body: "${{ steps.note.outputs.note }}"
           tag: "${{ env.tag_name }}"
           allowUpdates: true
