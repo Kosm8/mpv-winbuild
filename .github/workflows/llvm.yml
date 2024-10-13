@@ -90,7 +90,7 @@ jobs:
           bit: "64-v3"
           compiler: "clang"
           command: "ninja -C $buildroot/build$bit rebuild_cache && cmake --build $buildroot/build$bit --target llvm-download && ninja -C $buildroot/build$bit llvm-clang && ninja -C $buildroot/build$bit shaderc"
-          extra_option: "-DLLVM_ENABLE_PGO=GEN -DLLVM_ENABLE_LTO=Full -DCLANG_PACKAGES_LTO=ON -DENABLE_CCACHE=ON -DLLVM_PROFILE_DATA_DIR=$buildroot/profiles/"
+          extra_option: "-DLLVM_ENABLE_PGO=GEN -DLLVM_ENABLE_LTO=Thin -DCLANG_PACKAGES_LTO=ON -DENABLE_CCACHE=OFF -DLLVM_PROFILE_DATA_DIR=$buildroot/profiles/"
 
       - name: Merging profdata
         if: ${{ inputs.pgo }}
@@ -108,7 +108,7 @@ jobs:
           bit: "64-v3"
           compiler: "clang"
           command: "ninja -C $buildroot/build$bit llvm && rm -rf clang_root/llvm-thinlto || true"
-          extra_option: "-DLLVM_ENABLE_PGO=USE -DLLVM_ENABLE_LTO=Full -DLLVM_PROFDATA_FILE=$buildroot/llvm.profdata"
+          extra_option: "-DLLVM_ENABLE_PGO=USE -DLLVM_ENABLE_LTO=Thin -DLLVM_PROFDATA_FILE=$buildroot/llvm.profdata"
 
       - name: Save llvm cache
         uses: actions/cache/save@v4.1.0
