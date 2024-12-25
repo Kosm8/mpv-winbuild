@@ -7,7 +7,7 @@ on:
       pgo:
         description: "Build llvm with PGO"
         required: false
-        default: false
+        default: true
         type: boolean   
       no_save_cache:
         description: "Don't save caches after success build"
@@ -22,19 +22,14 @@ on:
       build_target:
         description: "Toolchain build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
-        - 32bit
         - 64bit
-        - 64bit-v3
-        - aarch64
-        - all-64bit
-        - all
       trigger_build:
         description: "Trigger mpv build action after toolchain build"
         required: false
-        default: true
+        default: false
         type: boolean
       release:
         description: "Publish a release after mpv build"
@@ -76,7 +71,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v4
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
           fetch-depth: 0
 
@@ -86,7 +81,7 @@ jobs:
           bit: "64-v3"
           compiler: "clang"
           command: "ninja -C $buildroot/build$bit llvm"
-          extra_option: "${{ inputs.pgo && '-DLLVM_ENABLE_PGO=GEN -DLLVM_PROFILE_DATA_DIR=$PWD/profiles/'}}"
+          extra_option: "${{ inputs.pgo && '-DLLVM_ENABLE_PGO=GEN -DLLVM_ENABLE_LTO=OFF -DLLVM_PROFILE_DATA_DIR=$PWD/profiles/'}}"
 
       - name: Training LLVM
         uses: ./action/build_toolchain
@@ -94,8 +89,8 @@ jobs:
         with:
           bit: "64-v3"
           compiler: "clang"
-          command: "ninja -C $buildroot/build$bit rebuild_cache && cmake --build $buildroot/build$bit --target llvm-download && ninja -C $buildroot/build$bit llvm-clang"
-          extra_option: "-DLLVM_ENABLE_PGO=GEN -DLLVM_PROFILE_DATA_DIR=$buildroot/profiles/"
+          command: "ninja -C $buildroot/build$bit rebuild_cache && cmake --build $buildroot/build$bit --target llvm-download && ninja -C $buildroot/build$bit llvm-clang && ninja -C $buildroot/build$bit shaderc"
+          extra_option: "-DLLVM_ENABLE_PGO=GEN -DLLVM_ENABLE_LTO=Full -DCLANG_PACKAGES_LTO=ON -DENABLE_CCACHE=ON -DLLVM_PROFILE_DATA_DIR=$buildroot/profiles/"
 
       - name: Merging profdata
         if: ${{ inputs.pgo }}
@@ -113,7 +108,7 @@ jobs:
           bit: "64-v3"
           compiler: "clang"
           command: "ninja -C $buildroot/build$bit llvm && rm -rf clang_root/llvm-thinlto || true"
-          extra_option: "-DLLVM_ENABLE_PGO=USE -DLLVM_ENABLE_LTO=Thin -DLLVM_PROFDATA_FILE=$buildroot/llvm.profdata"
+          extra_option: "-DLLVM_ENABLE_PGO=USE -DLLVM_ENABLE_LTO=Full -DLLVM_PROFDATA_FILE=$buildroot/llvm.profdata"
 
       - name: Save llvm cache
         uses: actions/cache/save@v4.2.0
