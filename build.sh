@@ -11,39 +11,17 @@ main() {
     simple_package=$3
 
     prepare
-    if [ "$target" == "32" ]; then
-        package "32" 
-    elif [ "$target" == "64" ]; then
+    if [ "$target" == "64" ]; then
         package "64"
-    elif [ "$target" == "64-v3" ]; then
-        package "64-v3"
-    elif [ "$target" == "aarch64" ]; then
-        package "aarch64"
-    elif [ "$target" == "all-64" ]; then
-        package "64"
-        package "64-v3"
-        package "aarch64"
-    else [ "$target" == "all" ];
-        package "32"
-        package "64"
-        package "64-v3"
-        package "aarch64"
     fi
     rm -rf ./release/mpv-packaging-master
 }
 
 package() {
     local bit=$1
-    if [ $bit == "32" ]; then
-        local arch="i686"
-    elif [ $bit == "64" ]; then
+    if [ $bit == "64" ]; then
         local arch="x86_64"
-    elif [ $bit == "64-v3" ]; then
-        local arch="x86_64"
-        local gcc_arch="-DGCC_ARCH=x86-64-v3"
-        local x86_64_level="-v3"
-    elif [ $bit == "aarch64" ]; then
-        local arch="aarch64"
+        local gcc_arch=-DGCC_ARCH=core2
     fi
 
     build $bit $arch $gcc_arch
@@ -61,7 +39,7 @@ build() {
         clang_option=(-DCMAKE_INSTALL_PREFIX=$clang_root -DMINGW_INSTALL_PREFIX=$buildroot/build$bit/install/$arch-w64-mingw32 -DCLANG_PACKAGES_LTO=ON)
     fi
     cmake -Wno-dev --fresh -DTARGET_ARCH=$arch-w64-mingw32 $gcc_arch -DCOMPILER_TOOLCHAIN=$compiler "${clang_option[@]}" $extra_option -DENABLE_CCACHE=ON -DSINGLE_SOURCE_LOCATION=$srcdir -DRUSTUP_LOCATION=$buildroot/install_rustup -G Ninja -H$gitdir -B$buildroot/build$bit
-
+    
     ninja -C $buildroot/build$bit download || true
 
     if [ "$compiler" == "gcc" ] && [ ! -f "$buildroot/build$bit/install/bin/cross-gcc" ]; then
@@ -69,14 +47,14 @@ build() {
     elif [ "$compiler" == "clang" ] && [ ! "$(ls -A $clang_root/bin/clang)" ]; then
         ninja -C $buildroot/build$bit llvm && ninja -C $buildroot/build$bit llvm-clang
     fi
-
+    
     if [[ ! "$(ls -A $buildroot/install_rustup/.cargo/bin)" ]]; then
         ninja -C $buildroot/build$bit rustup-fullclean
         ninja -C $buildroot/build$bit rustup
     fi
     ninja -C $buildroot/build$bit update
     ninja -C $buildroot/build$bit mpv-fullclean
-    
+
     ninja -C $buildroot/build$bit mpv
 
     if [ -n "$(find $buildroot/build$bit -maxdepth 1 -type d -name "mpv*$arch*" -print -quit)" ] ; then
@@ -85,7 +63,7 @@ build() {
         echo "Failed compiled $bit-bit. Stop"
         exit 1
     fi
-    
+
     ninja -C $buildroot/build$bit cargo-clean
 }
 
