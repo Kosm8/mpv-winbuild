@@ -12,20 +12,10 @@ on:
       build_target:
         description: "Build target"
         required: false
-        default: "all-64bit"
+        default: "64bit"
         type: choice
         options:
-        - 32bit
         - 64bit
-        - 64bit-v3
-        - aarch64
-        - all-64bit
-        - all
-      lgpl:
-        description: "Also build lgpl libmpv"
-        required: false
-        default: false
-        type: boolean
       compiler:
         required: false
         default: "clang"
@@ -81,26 +71,11 @@ jobs:
             let matrix = {};
             let build_target = "${{ inputs.build_target }}"
             switch ( build_target ) {
-              case "32bit":
-                matrix.bit = ["32"];
-                break;
               case "64bit":
                 matrix.bit = ["64"];
                 break;
-              case "64bit-v3":
-                matrix.bit = ["64-v3"];
-                break;
-              case "aarch64":
-                matrix.bit = ["aarch64"];
-                break;
-              case "all-64bit":
-                matrix.bit = ["64","64-v3","aarch64"];
-                break;
-              case "all":
-                matrix.bit = ["32","64","64-v3","aarch64"];
-                break;
               default:
-                matrix.bit = ["64","64-v3","aarch64"];
+                matrix.bit = ["64"];
                 break;
             }
             core.setOutput("matrix_bit",JSON.stringify(matrix));
@@ -197,7 +172,7 @@ jobs:
       - name: Checkout toolchain
         uses: actions/checkout@v5
         with:
-          repository: shinchiro/mpv-winbuild-cmake
+          repository: Kosm8/mpv-winbuild-cmake
           path: mpv-winbuild-cmake
           fetch-depth: 0
       - name: Prepare
@@ -354,16 +329,9 @@ jobs:
           srcdir=$(pwd)/src_packages
           
           builddir=$buildroot/build$bit
-          if [ $bit == "32" ]; then
-              arch="i686"
-          elif [ $bit == "64" ]; then
+          if [ $bit == "64" ]; then
               arch="x86_64"
-          elif [ $bit == "64-v3" ]; then
-              arch="x86_64"
-              gcc_arch=-DGCC_ARCH=x86-64-v3
-              x86_64_level=-v3
-          elif [ $bit == "aarch64" ]; then
-              arch="aarch64"
+              gcc_arch=-DGCC_ARCH=core2
           fi
           retry-tool() {
             local RETRY_COUNTER=0
@@ -415,17 +383,8 @@ jobs:
             const lgpl = ${{ matrix.lgpl }} ? "-lgpl" : "";
             let arch="";
             switch ( "${{ matrix.bit }}" ) {
-              case "32":
-                arch = "i686";
-                break;
               case "64":
                 arch = "x86_64";
-                break;
-              case "64-v3":
-                arch = "x86_64-v3";
-                break;
-              case "aarch64":
-                arch = "aarch64";
                 break;
             }
             for (let type of types) {
@@ -666,10 +625,7 @@ jobs:
             note+="**Download Tips:**\n";
             const path = require('path');
             const tips = {
-              "i686": "for 32 bit system",
               "x86_64": "for 64 bit system",
-              "x86_64-v3": "for 64 bit system with cpu not older than Intel Haswell or AMD Excavator",
-              "aarch64": "for ARM64(aarch64)"
             }
             async function getTips(arch){
               const globber = await glob.create(`artifacts/mpv-${arch}-[0-9]*.7z`);
@@ -765,7 +721,6 @@ jobs:
               const toolchain_version = toolchain_restore_key.split("-build${{ matrix.bit }}-").at(-1);
               core.exportVariable( `toolchain_version`, toolchain_version );
             }
-
       - name: Resave inital clang sysroot cache
         id: clang_root
         if: ${{ inputs.compiler =='clang' && env.toolchain_version  }}
@@ -774,7 +729,7 @@ jobs:
           path: ${{ github.workspace }}/mpv-winbuild-cmake/clang_root
           key: ${{ matrix.bit }}-clang_root-${{ env.toolchain_version }}
           restore-keys: ${{ matrix.bit }}-clang_root-${{ env.toolchain_version }}
-          
+
   cache_llvm:
     name: keep llvm cache alive
     needs: [params,build_mpv]
@@ -790,7 +745,7 @@ jobs:
           sudo pacman -Syu --noconfirm
           sudo pacman -S --noconfirm --needed git curl
       - uses: actions/checkout@v5
-      
+
       - name: Resave llvm cache
         id: llvm
         continue-on-error: true
