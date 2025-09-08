@@ -58,7 +58,7 @@ jobs:
       patch_note: ${{ steps.script.outputs.patch_note }}
     steps:
       - id: script
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const commit = await github.rest.repos.getCommit({
@@ -203,7 +203,7 @@ jobs:
           
       - name: Generate cache key
         id: generate_key
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             let toolchain_restore_key="${{ steps.lookup_toolchain.outputs.cache-matched-key }}";
@@ -373,7 +373,7 @@ jobs:
 
       - name: "Get artifacts' name and path"
         id: get_files
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const path = require('path');
@@ -455,7 +455,7 @@ jobs:
           key: ${{ env.build_save_key }}
 
       - name: "Job summary"
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         continue-on-error: true
         if: ${{ always() }}
         with:
@@ -567,7 +567,7 @@ jobs:
           merge-multiple: true
     
       - name: "Check artifacts"
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const globber = await glob.create(`artifacts/mpv*.7z`);
@@ -604,7 +604,7 @@ jobs:
 
       - name: "Generate release note & sha256"
         id: note
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const sha = `${{ needs.params.outputs.sha }}`;
@@ -706,7 +706,7 @@ jobs:
 
       - name: Generate cache key
         id: generate_key
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             let toolchain_restore_key="${{ steps.toolchain.outputs.cache-matched-key }}";
