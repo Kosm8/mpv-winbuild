@@ -28,7 +28,7 @@ if(CPU_COUNT EQUAL 0)
     set(CPU_COUNT 1)
 endif()
 
-find_file(MALLOC "libmimalloc.so" "libmimalloc.so.2" "libjemalloc.so"
+find_file(MALLOC "libmimalloc.so" "libjemalloc.so"
           PATHS "/usr/lib" "/usr/lib64" "/usr/lib/x86_64-linux-gnu")
 if(MALLOC)
     option(LLD_LTO_ALL_THREADS "Allow LLD to use all threads for ThinLTO, non-Glibc malloc implementations can improve performance." ON)

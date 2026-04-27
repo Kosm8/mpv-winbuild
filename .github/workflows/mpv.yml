@@ -1,11 +1,4 @@
 name: mpv
-defaults:
-  run:
-    shell: bash
-
-permissions:
-  actions: write
-  contents: write
 
 on: 
   workflow_dispatch:
@@ -17,14 +10,17 @@ on:
         type: boolean
 
 jobs:
-  build_mpv:
-    name: build
+  build:
     runs-on: ubuntu-latest
     continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+    permissions:
+      actions: write
+      contents: write
     steps:
       - uses: actions/checkout@main
-        with:
-          ref: rm
       - name: Setup git config
         run: |
           git config --global user.name "github-actions[bot]"
@@ -55,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y ccache nasm libmimalloc2.0
+          sudo apt-get install --no-install-recommends -y ccache nasm libmimalloc-dev
           pip install --user meson rst2pdf
 
           function llvm_latest_tag {
@@ -103,7 +99,6 @@ jobs:
               rustup update
           fi
       - name: Build
-        id: build
         run: |
           mkdir -p release
 
@@ -150,7 +145,6 @@ jobs:
           path: release/mpv.7z
       - name: Job summary
         uses: actions/github-script@main
-        continue-on-error: true
         if: ${{ always() }}
         with:
           script: |
@@ -243,25 +237,13 @@ jobs:
         with:
           path: rust
           key: cached_rust
-
-  publish_release:
-    name: release
-    needs: [build_mpv]
-    if: ${{ inputs.release == true }}
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@main
-        with:
-          ref: rm
-      - name: Download artifact
-        run:  |
-          gh run download --name mpv ${{ github.run_id }}
-      - name: Create release
+      - name: Upload release
+        if: ${{ inputs.release == true }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run:  |
           gh release delete mpv --cleanup-tag --yes || true
           echo -e "**Build Time**:  $(date "+%Y-%m-%d %H:%M")\n \
                    **Build Details**:  https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\n" \
                    > notes.md
-          gh release create mpv --title mpv --notes-file notes.md mpv.7z
+          gh release create mpv --title mpv --notes-file notes.md release/mpv.7z

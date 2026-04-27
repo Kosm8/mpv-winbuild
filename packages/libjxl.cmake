@@ -41,8 +41,11 @@ ExternalProject_Add(libjxl
         -DJPEGXL_FORCE_SYSTEM_HWY=ON
     BUILD_COMMAND ${EXEC} ninja
     INSTALL_COMMAND ${EXEC} ninja install
-            COMMAND ${EXEC} sed -i 's/^Libs.private:.*$/Libs.private: -lc++ -ladvapi32/' ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/libjxl.pc
-            COMMAND ${EXEC} sed -i 's/^Libs.private:.*$/Libs.private: -lc++ -ladvapi32/' ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/libjxl_threads.pc
+            COMMAND ${EXEC} sed -i -e '/Libs.private:.*/ s/[[:blank:]]*$//'
+                                   -e '/Libs.private:.*/ { / -lc++$/ ! s/$/ -lc++/ }'
+                                   -e '/Libs.private:.*/ { / -ladvapi32$/ ! s/$/ -ladvapi32/ }'
+                                   ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/libjxl.pc
+                                   ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/libjxl_threads.pc
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
