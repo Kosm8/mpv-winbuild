@@ -26,11 +26,17 @@ ExternalProject_Add(shaderc
                   -DSHADERC_SKIP_SPVC=ON
                   -DSHADERC_SKIP_INSTALL=ON
                   -DSHADERC_SKIP_EXAMPLES=ON
+                  -DSHADERC_SKIP_EXECUTABLES=ON
+                  -DSHADERC_SKIP_COPYRIGHT_CHECK=ON
                   -DSPIRV_SKIP_EXECUTABLES=ON
                   -DSPIRV_SKIP_TESTS=ON
                   -DENABLE_SPIRV_TOOLS_INSTALL=ON
                   -DENABLE_GLSLANG_BINARIES=OFF
                   -DSPIRV_TOOLS_BUILD_STATIC=ON
+                  -DDISABLE_RTTI=ON
+                  -DDISABLE_EXCEPTIONS=ON
+                  -DENABLE_HLSL=OFF
+                  -DSHADERC_ENABLE_HLSL=OFF
                   -DSPIRV_TOOLS_LIBRARY_TYPE=STATIC
                   -DMINGW_COMPILER_PREFIX=${TARGET_ARCH}
                   -DCMAKE_CXX_FLAGS='${CMAKE_CXX_FLAGS}'

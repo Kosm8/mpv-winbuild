@@ -18,6 +18,7 @@ ExternalProject_Add(spirv-cross
         -DSPIRV_CROSS_ENABLE_CPP=OFF
         -DSPIRV_CROSS_ENABLE_REFLECT=OFF
         -DSPIRV_CROSS_ENABLE_UTIL=OFF
+        -DSPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS=ON
         -DCMAKE_CXX_FLAGS='${CMAKE_CXX_FLAGS}'
     BUILD_COMMAND ${EXEC} ninja
           COMMAND ${EXEC} llvm-lib /out:libspirv-cross-c.a libspirv-cross-{c,core,glsl,hlsl}.a
