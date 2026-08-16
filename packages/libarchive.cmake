@@ -6,6 +6,8 @@ ExternalProject_Add(libarchive
     GIT_REPOSITORY https://github.com/libarchive/libarchive.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
+    GIT_REMOTE_NAME origin
+    GIT_RESET 7219b0134d771dc4b51bf86b4d01761b87398b1b
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -B <BINARY_DIR> -S <SOURCE_DIR>
         -G Ninja
